@@ -1,0 +1,1096 @@
+---
+title: "Proposal: Core Values"
+author: "James A. Overton"
+date: "2022-11-15"
+format: revealjs
+fig-height: 3
+---
+
+# Introduction
+
+## Context
+
+- OBO is a community of communities
+- we try to build on each other's work
+  - requires shared understanding
+- data integration requires shared modelling
+- qualitative and quantiative values are fundamental
+
+## Outline
+
+- characteristics
+- scalar values
+- categorical values
+- determination
+- information
+- proposal
+- decisions
+
+# Characteristics
+
+## Phenotype Community
+
+- focus on characteristic, not measurement
+- mainly categorical statements
+- want good options for scalar statements
+- [quality, trait, phenotype distinction](https://docs.google.com/presentation/d/1uG1-QP6qWDArBP5FB-IMGdVn-y-BWVVn-8WjYKXPnts/edit#slide=id.g1015a0c2c32_0_2029)
+
+## Penguin Sex
+
+Penguin N1A1 is male,
+i.e. has the 'male' characteristic.
+
+```{dot}
+//| fig-height: 2
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    male ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_male [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_male -> male ;
+  N1A1 -> N1A1_male [style="dashed", label="has characteristic"] ;
+}
+```
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0020001 ; # 'male genotypic sex'
+  ] .
+```
+
+## Penguin Body Mass
+
+Penguin N1A1 has body mass (weight).
+
+```{dot}
+//| fig-height: 2
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    mass ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_mass [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_mass -> mass ;
+  N1A1 -> N1A1_mass [style="dashed", label="has characteristic"] ;
+}
+```
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+  ] .
+```
+
+But we want to know how much mass!
+
+
+# Scalar Values
+
+## Use Cases
+
+1. we just want to say "N1A1 has body mass 3750g".
+
+## Problems
+
+- agree on a unit ontology
+  - I think UoM solves this <https://units-of-measurement.org>
+- agree on some patterns
+
+This is not rocket science!
+
+## Options
+
+1. RDF typed literal
+2. characteristic has quantity
+3. characteristic has value, has quantity
+
+## 1. RDF Typed Literal: Too Simple
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue "3750"^^unit:g
+  ] .
+```
+
+- CON: won't be recognized as numeric by SPARQL, etc.
+  - stick with XSD datatypes, e.g. `xsd:float`, `xsd:integer`
+- CON: OWL datatypes are obscure
+- CON: need RDF reification to say more, e.g. provenance, significant digits, etc.
+
+## 2. Characteristic has Quantity
+
+ Add 'has quantity' and 'has unit' predicates on characteristic.
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasQuantity "3750"^^xsd:float ;
+    :hasUnit unit:g
+  ] .
+```
+
+- CON: limited to just one value per characteristic
+  - can't even fit simple metric unit conversions
+
+## 3. Characteristic has Value
+
+::: {.panel-tabset}
+
+### Diagram
+
+```{dot}
+//| fig-height: 2
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    mass ;
+    scalar [label="scalar value"] ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_mass [label=""] ;
+    N1A1_value [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_mass -> mass ;
+  N1A1_value -> scalar ;
+  N1A1 -> N1A1_mass [style="dashed", label="has characteristic"] ;
+  N1A1_mass -> N1A1_value [style="dashed", label="has value"] ;
+}
+```
+
+### Turtle
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :scalarValue ;
+      :hasQuantity "3750"^^xsd:float ;
+      :hasUnit unit:g
+    ]
+  ] .
+```
+:::
+
+- CON: one more blank node
+- PRO: a characteristic can have multiple values
+- PRO: room for more information about the value
+
+## Proposal
+
+Option 3: characteristic has value
+
+Simplest thing that will work.
+
+
+# Categorical Values
+
+## Use Cases
+
+Categorical values with a "shape" like scalar values.
+
+1. use existing ontology term, e.g. 'normal mass'
+2. use category system, e.g. "low", "medium", "high"
+3. use versioned category system, e.g. lung distant metastases (AJCC 7th Edition)
+
+## Problems
+
+- subtle distinctions: categories, classes, universals
+- ontology terms often used as all three
+
+## Options
+
+1. no distinction: just pun classes
+2. soft distinction: category can be a class
+3. hard distinction: category is never a class
+
+## 1. No Distinction: Pun classes
+
+A categorical value can just point to an ontology class.
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :categoricalValue ;
+      :hasCategory PATO:0045030 ; # 'normal mass'
+    ]
+  ] .
+```
+
+- CON: no room to say more about alternatives, labels, versions, etc.
+
+## 2. Soft Distinction: Category System
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :categoricalValue ;
+      :hasCategory PATO:0045030 ; # 'normal mass'
+      :hasCategorySystem
+        <http://purl.obolibrary.org/obo/pato/releases/2022-11-09/pato.owl>
+    ]
+  ] .
+```
+
+- CON: one more (optional) predicate
+- PRO: room for category system to say more about alternatives, lables, versions, etc.
+
+## 3. Hard Distinction: Always a Category
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :categoricalValue ;
+      :hasCategory :normal-mass
+    ]
+  ] .
+
+:normal-mass
+  a :category ;
+  rdfs:label "normal" ;
+  IAO:0000136 PATO:0000125 ; # 'is about' 'mass'
+  :categorySystem :three-part-mass-category-system .
+
+:three-part-mass-category-system
+  a :categorySystem .
+```
+
+- CON: more work in the simple case
+- CON: still need to link category to ontology class
+
+## Proposal
+
+Option 2: 'has category' with optional 'has category system'
+
+We can build more machinery for category systems in the future.
+
+
+# Determination
+
+## Use Cases
+
+Link a value to whatever determined it.
+
+1. an assay measures a value
+2. a value is the average of several measurements
+3. a protocol specifies a minimum mass for subjects
+
+## Problems
+
+- values are often measurements, but could be:
+  data transformation, prediction, simulation
+  rule, threshold, limit, constant, etc.
+  - these don't all sound like processes
+
+## Options
+
+1. specified output of: stick to existing planned processes
+2. determined by: more general predicate
+3. via information stuff: see next section
+
+## 1. Specified Output Of
+
+::: {.panel-tabset}
+
+### Diagram
+
+```{dot}
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    mass ;
+    scalar [label="scalar value"] ;
+    assay [label="mass measurement assay"] ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_mass [label=""] ;
+    N1A1_value [label=""] ;
+    N1A1_assay [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_mass -> mass ;
+  N1A1_value -> scalar ;
+  N1A1_assay -> assay ;
+  N1A1 -> N1A1_mass [style="dashed", label="has char"] ;
+  N1A1_mass -> N1A1_value [style="dashed", label="has value"] ;
+  N1A1_value -> N1A1_assay [style="dashed", label="specified output", dir="back"] ;
+}
+```
+
+### Turtle
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :scalarValue ;
+      :hasQuantity "3750"^^xsd:float ;
+      :hasUnit unit:g ;
+      OBI:0000312 [ # 'is specified output of'
+        a OBI:0000445 ; # 'mass measurement assay'
+      ]
+    ]
+  ] .
+```
+
+:::
+
+- CON: implies that the value is a 'data item' about the evaluant
+
+## 2. Determined By
+
+::: {.panel-tabset}
+
+### Diagram
+
+```{dot}
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    mass ;
+    scalar [label="scalar value"] ;
+    assay [label="mass measurement assay"] ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_mass [label=""] ;
+    N1A1_value [label=""] ;
+    N1A1_assay [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_mass -> mass ;
+  N1A1_value -> scalar ;
+  N1A1_assay -> assay ;
+  N1A1 -> N1A1_mass [style="dashed", label="has char"] ;
+  N1A1_mass -> N1A1_value [style="dashed", label="has value"] ;
+  N1A1_value -> N1A1_assay [style="dashed", label="determined by"] ;
+}
+```
+
+### Turtle
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :scalarValue ;
+      :hasQuantity "3750"^^xsd:float ;
+      :hasUnit unit:g ;
+      :determinedBy [
+        a OBI:0000445 ; # 'mass measurement assay'
+      ]
+    ]
+  ] .
+```
+
+:::
+
+- PRO: simple, general
+- CON: overlap with existing 'is specified output of'
+
+## Proposal
+
+I prefer Option 2.
+
+This has consequences for the next section: information stuff.
+
+- can a value be determined by a non-process, e.g. a document?
+- I would like to link to PROV
+
+
+# Information
+
+## Use Cases
+
+Link a value to information stuff.
+
+1. an assay outputs a data item about the evaluant
+2. a value is the average of several measurements
+3. a protocol specifies an age threshold
+
+## Problems
+
+- OBI focuses on 'data item', which are ICEs
+- values are kinda like numbers -- BFO is silent
+- values are arguably GDCs
+- values are arguably not ICEs: not (always?) **about** things
+- the phenotype community wants to make direct statements
+  - not interested in "information-land"
+
+## Options
+
+1. specifes value: a 'data item' 'specifies value' some 'value'
+2. multiple types, legacy: `rdf:type` 'scalar value' **and** 'data item'
+3. multiple types, revised: `rdf:type` 'scalar value' **and** 'measured value'
+4. kitchen sink: 1 and 3
+
+## 1. Specifies Value
+
+::: {.panel-tabset}
+
+### Diagram
+
+```{dot}
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    mass ;
+    scalar [label="scalar value"] ;
+    data [label="data item"] ;
+    assay [label="mass measurement assay"] ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_mass [label=""] ;
+    N1A1_value [label=""] ;
+    N1A1_data [label=""] ;
+    N1A1_assay [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_mass -> mass ;
+  N1A1_value -> scalar ;
+  N1A1_data -> data ;
+  N1A1_assay -> assay ;
+  N1A1 -> N1A1_mass [style="dashed", label="has char"] ;
+  N1A1_mass -> N1A1_value [style="dashed", label="has value"] ;
+  N1A1_value -> N1A1_data [style="dashed", label="specifies value", dir="back"] ;
+  N1A1_data -> N1A1_assay [style="dashed", label="specified output", dir="back"] ;
+  N1A1_data -> N1A1_mass [style="dashed", label="is about"] ;
+}
+```
+
+### Turtle (Nested)
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :scalarValue ;
+      :hasQuantity "3750"^^xsd:float ;
+      :hasUnit unit:g .
+      :valueSpecifiedBy [
+        a IAO:0000027 ;   #'data item'
+        # can't fit 'is about' triple
+        OBI:0000312 [     # 'is specified output of'
+          a OBI:0000445 ; # 'mass measurement assay'
+        ]
+      ]
+    ]
+  ].
+```
+
+### Turtle (Flat)
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ;      # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 :N1A1-mass . # 'has characteristic'
+
+:N1A1-mass
+  a PATO:0000125 ; # 'mass'
+  :hasValue :N1A1-mass-value .
+
+:N1A1-mass-value
+  a :scalarValue ;
+  :hasQuantity "3750"^^xsd:float ;
+  :hasUnit unit:g .
+
+:N1A1-mass-data-item
+  a IAO:0000027 ; # 'data item'
+  :specfiesValue :N1A1-mass-value ;
+  IAO:0000136 :N1A1-mass . # 'is about'
+  
+:N1A1-mass-assay
+  a OBI:0000445 ;                    # 'mass measurement assay'
+  OBI:0000299 :N1A1-mass-data-item . # 'has specified output'
+```
+
+:::
+
+- CON: hard to get from value to assay
+- CON: 'data item' is not doing any real work
+
+## 2. Multiple Types, Legacy
+
+::: {.panel-tabset}
+
+### Diagram
+
+```{dot}
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    mass ;
+    scalar [label="scalar value"] ;
+    data [label="data item"] ;
+    assay [label="mass measurement assay"] ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_mass [label=""] ;
+    N1A1_value [label=""] ;
+    N1A1_assay [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_mass -> mass ;
+  N1A1_value -> scalar ;
+  N1A1_value -> data ;
+  N1A1_assay -> assay ;
+  N1A1 -> N1A1_mass [style="dashed", label="has char"] ;
+  N1A1_mass -> N1A1_value [style="dashed", label="has value"] ;
+  N1A1_value -> N1A1_assay [style="dashed", label="specified output", dir="back"] ;
+  N1A1_value -> N1A1_mass [style="dashed", label="is about"] ;
+}
+```
+
+### Turtle
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :scalarValue, IAO:0000027 ; #'data item'
+      :hasQuantity "3750"^^xsd:float ;
+      :hasUnit unit:g .
+      # can't fit 'is about' triple
+      OBI:0000312 [     # 'is specified output of'
+        a OBI:0000445 ; # 'mass measurement assay'
+      ]
+    ]
+  ].
+```
+
+:::
+
+- implies that values are (sometimes) ICEs
+
+
+## 3. Multiple Types, Revised
+
+::: {.panel-tabset}
+
+### Diagram
+
+```{dot}
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    mass ;
+    scalar [label="scalar value"] ;
+    measured [label="measured value"] ;
+    assay [label="mass measurement assay"] ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_mass [label=""] ;
+    N1A1_value [label=""] ;
+    N1A1_assay [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_mass -> mass ;
+  N1A1_value -> scalar ;
+  N1A1_value -> measured ;
+  N1A1_assay -> assay ;
+  N1A1 -> N1A1_mass [style="dashed", label="has char"] ;
+  N1A1_mass -> N1A1_value [style="dashed", label="has value"] ;
+  N1A1_value -> N1A1_assay [style="dashed", label="determined by"] ;
+}
+```
+
+### Turtle
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ; # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [       # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :scalarValue, :measuredValue ;
+      :hasQuantity "3750"^^xsd:float ;
+      :hasUnit unit:g .
+      :determinedBy [
+        a OBI:0000445 ; # 'mass measurement assay'
+      ]
+    ]
+  ].
+```
+
+:::
+
+- new 'measured value' class "'value' and ('determined by' some 'assay')"
+
+## 4. Kitchen Sink
+
+::: {.panel-tabset}
+
+### Diagram
+
+```{dot}
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    penguin [label="Adelie Penguin"] ;
+    mass ;
+    scalar [label="scalar value"] ;
+    measured [label="measured value"] ;
+    data [label="data item"] ;
+    assay [label="mass measurement assay"] ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 ;
+    N1A1_mass [label=""] ;
+    N1A1_value [label=""] ;
+    N1A1_data [label=""] ;
+    N1A1_assay [label=""] ;
+  }
+  N1A1 -> penguin ;
+  N1A1_mass -> mass ;
+  N1A1_value -> scalar ;
+  N1A1_value -> measured ;
+  N1A1_data -> data ;
+  N1A1_assay -> assay ;
+  N1A1 -> N1A1_mass [style="dashed", label="has char"] ;
+  N1A1_mass -> N1A1_value [style="dashed", label="has value"] ;
+  N1A1_value -> N1A1_data [style="dashed", label="specified by"] ;
+  N1A1_data -> N1A1_assay [style="dashed", label="specified output", dir="back"] ;
+  N1A1_value -> N1A1_assay [style="dashed", label="determined by"] ;
+  N1A1_data -> N1A1_mass [style="dashed", label="is about"] ;
+}
+```
+
+### Turtle
+
+```turtle
+:N1A1
+  a NCBITaxon:9238 ;      # 'Adelie Penguin (Pygoscelis adeliae)'
+  RO:0000053 [ # 'has characteristic'
+    a PATO:0000125 ; # 'mass'
+    :hasValue [
+      a :scalarValue, :measuredValue ;
+      :hasQuantity "3750"^^xsd:float ;
+      :hasUnit unit:g .
+      :specifiedBy :N1A1-mass-data-item ;
+      :determinedBy :N1A1-mass-assay ;
+    ]
+  ].
+
+:N1A1-mass-assay
+  a OBI:0000445 ; # 'mass measurement assay'
+  OBI:0000299 :N1A1-mass-data-item . # 'has specified output'
+
+:N1A1-mass-data-item
+  a IAO:0000027 . #'data item'
+```
+
+:::
+
+## 4. Kitchen Sink 2
+
+- PRO: kinda backwards compatible
+  - only use what you want
+  - maybe make BFO people happy?
+- CON: confusing
+  - difference between 'specified by' and 'determined by'?
+- I would just not bother with the data item
+  - 'is about' does no work, 'value of' actually says something
+  - there's nothing I want to say about 'data item' other than what's in the 'value'
+
+## Proposal
+
+I like Option 3.
+I guess 4 is acceptable, but smells bad to me.
+
+- pushes us to fix problems:
+  - duplicate hierarchies and "shadow hierarchies"
+  - shared modelling for measuring traits
+  - move past 'is about'
+
+
+# Proposal
+
+## Diagram
+
+```{dot}
+digraph G {
+  graph [rankdir="BT"]
+  node [shape="rect"]
+  subgraph classes {
+    rank="same" ;
+    subject [label="entity"] ;
+    characteristic ;
+    value ;
+    determiner [label="entity"] ;
+  }
+  subgraph instances {
+    rank="same" ;
+    node [style="dashed"]
+    N1A1 [label=""]
+    N1A1_char [label=""] ;
+    N1A1_value [label=""] ;
+    N1A1_process [label=""] ;
+  }
+  N1A1 -> subject ;
+  N1A1_char -> characteristic ;
+  N1A1_value -> value ;
+  N1A1_process -> determiner ;
+  N1A1 -> N1A1_char [style="dashed", label="has characteristic"] ;
+  N1A1_char -> N1A1_value [style="dashed", label="has value"] ;
+  N1A1_value -> N1A1_process [style="dashed", label="determined by"] ;
+}
+```
+
+## Core Terms {.smaller}
+
+- classes
+  - value
+    - categoricalValue
+    - scalarValue
+- object properties
+  - hasValue: characteristic to value
+  - hasUnit: value to unit
+  - determinedBy: value to entity
+- data properties
+  - hasQuantity: value to number
+  - hasCategory: value to category (IRI)
+  - hasCategorySystem: value to category system (IRI)
+  - hasTextualRepresentation: value to string
+
+## LinkML
+
+```yaml
+classes:
+  Value:
+    description: A specification of a characteristic.
+    slots:
+      - hasTextualRepresentation
+
+  CategoricalValue:
+    is_a: Value
+    description: A value specifying that a characteristic belongs to a given category.
+    slots:
+      - hasCategory
+      - hasCategorySystem
+
+  ScalarValue:
+    is_a: Value
+    description: A value specifying that a characteristic has a given quantity and unit.
+    slots:
+      - hasQuantity
+      - hasUnit
+```
+
+## Room to Grow
+
+- measuring traits
+- temporal stuff
+- limits: normal range, detection, uncertainty
+- counts
+- ratios
+- category systems
+- datasets
+
+
+# Decisions
+
+## Home
+
+Where should these new terms live?
+
+1. COB
+2. a new OBO ontology
+3. outside of OBO, e.g. w3id
+
+I've been leaning toward 3.
+
+- PRO: encourage wider adoption
+- CON: weaker domains and ranges
+
+## Identifiers
+
+What should the identifiers look like?
+
+1. numeric
+2. English camelCase
+
+If we go with 3 above, then 2 here makes the most sense.
+
+Unlike OBO in general,
+we're talking about a small number of terms,
+mostly predicates,
+with short names,
+that we expect to be very stable.
+
+
+
+# Drafts
+
+
+## OBI revisions
+
+- assay
+  - measures trait: characteristic (quality of some entity)
+  - measures entity: entity
+     - mainly: material entity or process
+  - has specified input: material entity
+  - material processing technique: material processing
+  - detection technique: assay
+  - has specified output: DROP
+    - causes duplicate/shadow hierarchy problems
+    - replace with link to category system?
+
+## OBI cases
+
+1. mass measurement
+2. basophil measurement
+
+
+## More
+
+- where does 'value' fit under BFO
+  - first tell me where 'number' fits
+- not clear that values are (always) 'about' things
+- IAO and OBI have various 'data items'
+- OBI assays output information about things
+
+- define `:valueOf` inverse of `:hasValue`
+- is `:valueOf` subproperty of 'is about'?
+
+## Example: Penguin Beak 
+
+
+- bridge OBO phenotype and measurement communities
+- subject has characteristic
+  - classic OBO modeling
+  - newer trait vs phenotype
+- characteristic has value
+  - categorical value
+    - category
+    - category system
+  - scalar value
+    - quantity
+    - unit
+  - textual representation
+- value determined by planned process
+  - specified output of?
+  - connection to PROV
+  - can have protocols and investigators and all sorts of stuff
+  - not just assays, lots of things
+- benefits
+  - simple
+  - not limited to measurements
+  - room to grow
+- possible problems
+  - ontological status of values
+    - between GDC and ICE?
+- open questions
+  - where should it live
+- bridge
+  - assay measures characteristic
+    - of what?
+      - sometimes the input/evaluant/analyte
+    - target entity
+    - https://github.com/oborel/obo-relations/issues/535
+- future work
+  - time stuff
+    - value detemined **at** time
+    - value detemined **for** time
+    - OWL Time
+  - category systems
+  - rigid vs non-rigid: trait vs phenotype?
+
+
+
+
+
+
+
+## OBO Communities
+
+- OBO is a community of communities
+- we build on each other's work
+- building together requires shared understanding
+
+::: {.notes}
+OBO is a larger community
+that contains many smaller communities.
+We all use ontologies to work with scientific data.
+We have different goals and use cases,
+so we use ontologies in different ways.
+Shared understanding and shared modelling
+makes it easier to reuse each other's work.
+The closer we grow, the more shared understanding is required.
+:::
+
+
+## Phenotype Community
+
+- a large community within OBO
+- many thousands of terms under 'characteristic': PATO, OBA, etc.
+
+Modelling 
+
+
+## Measurement Community
+
+- our goal is to build on each other's work, which requires a shared understanding
+- are we grow closer together, and reuse more of each other's work, the need for a shared understanding grows stronger
+- one of those communities (a large one) wants to describe phenotypes
+  - they have built large ontologies of characteristics, such as PATO and OBA
+    - they sometimes distinguish between a trait and a phenotype (qualified trait)
+  - these phenotypes are most often categorical: increased height
+  - it is fairly easy to express a phenotype in RDF/OWL:
+    - OWL: subject 'has characteristic' some 'increased height'
+    - RDF: subject 'has characteristic' [ a 'increased height' ]
+  - this group only sometimes cares about how a characteristic was measured
+- another of those communities wants to describe scientific processes such as measurements
+  - to a first approximation, a measurement process measures a characteristic
+  - these measurements are most often scalar: 182cm
+    - measurements can also be categorical
+  - it's trickier to express a scalar in OWL and RDF, because you need to keep the pair of the quantity and the unit together
+  - this group is more comfortable thinking of the outputs of processes as information about a characteristic
+    - characteristics are not information, but there can be an element of judgment in some phenotypes: increased height relative to what?
+- there is, of course, overlap between these communities
+- there should be a clear link between a measurement process and the characteristic that is measures
+  - in practise, this is rarely the case
+  - there are many ways to measure a characteristic
+  - the same method may distinguish many sub-characteristics
+- OBO projects have struggled to bridge this gap
+- one problem is units, but we have a proposed solution
+- a good solution would
+  - respect established modelling of phenotypes and processes
+  - establish quantitative modelling standard
+  - let you focus on one approach or the other or both
+  - bridge the gap between characteristics and processes
+    - show what the solution would look like
+  - include measurements but also computations, predictions, settings, etc.
+  - start small, with room to grow
+    - time
+    - more provenance
+
+## Questions:
+
+## Four Roads
+
+- characteristic: James' height
+- characteristic with categorical value: normal height
+  - inference process?
+- process with scalar value: 182cm
+- process with categorical value: normal height, rule
+- characteristic with scalar value: 182cm
+  - specifies characteristic: says that it's more specific
+    - specific time, specific conditions
+  - doesn't have to say more than this
+
+- other ways to get values
+  - calculations: average
+  - prediction: you tell me what the subject is
+
+
+## Roads Not Taken
+
+- ideally we would reuse existing semantic web solutions, but I don't think that's possible
+- many predicates
+- datatypes for units
+- special unit literals
+- RDF/OWL annotations
+
+
+## Open Questions
+
+- where does this live?
+  - OBO: tighter constraints, domains and ranges
+  - outside OBO: wider reach, reuse; English IDs
+- individuation conditions:
+  - characteristics can have many values
+  - one value per process (determined by)
+- salvage existing terms
+- ontological status of values
+  - first tell me what a number is under BFO...
+
+
+
+
+

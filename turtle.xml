@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd"
+[
+	<!ENTITY more "(_\d+)*">
+	<!ENTITY int  "[+-]?(0|[1-9]\d*&more;)">
+	<!ENTITY frac "\.\d+&more;">
+	<!ENTITY exp  "[eE][+-]?\d+&more;">
+	
+	<!ENTITY offset   "[+-]\d\d:\d\d">
+	<!ENTITY time     "\d\d:\d\d:\d\d(\.\d+)?(&offset;|Z)?">
+	<!ENTITY datetime "\d\d\d\d-\d\d-\d\d(T&time;)?">
+]>
+<!-- https://github.com/toml-lang/toml -->
+<language name="Turtle" section="Other" extensions="*.ttl" mimetype="text/turtle" version="9" kateversion="5.0" author="flying-sheep@web.de" license="LGPLv2+">
+<highlighting>
+	<contexts>
+		<context name="Turtle" attribute="Error" lineEndContext="#stay">
+			<DetectSpaces attribute="Whitespace"/>
+			<RegExpr    String="[\w\:-]+" context="#stay"   attribute="Identifier"/>
+			<DetectChar char="&quot;"     context="Literal" attribute="Literal"/>
+			<DetectChar char="["          context="#stay"   attribute="Paren"/>
+			<DetectChar char="]"          context="#stay"   attribute="Paren"/>
+			<DetectChar char="^"          context="#stay"   attribute="Caret"/>
+			<DetectChar char=","          context="#stay"   attribute="Separator"/>
+			<DetectChar char=";"          context="#stay"   attribute="Separator"/>
+			<DetectChar char="."          context="#stay"   attribute="Terminator"/>
+			<DetectChar char="#"          context="Comment" attribute="Comment"/>
+		</context>
+		<context name="Literal" lineEndContext="#stay" attribute="Literal">
+            <DetectChar char="&quot;" context="#pop" attribute="Literal" />
+            <RegExpr String="\\(?:[&quot;\\/bfnrt]|u[0-9a-fA-f]{4})" context="#stay" attribute="Style_String_Key_Char" />
+        </context>
+		<context name="Comment" attribute="Comment" lineEndContext="#pop">
+			<DetectSpaces/>
+			<IncludeRules context="##Comments" />
+			<DetectIdentifier/>
+		</context>
+	</contexts>
+	<itemDatas>
+		<itemData name="Comment"     defStyleNum="dsComment"/>
+		<itemData name="Identifier"  defStyleNum="dsFunction"/>
+		<itemData name="Literal"     defStyleNum="dsString"/>
+		<itemData name="Whitespace"  defStyleNum="dsNormal"/>
+		<itemData name="Paren"       defStyleNum="dsOperator"/>
+		<itemData name="Caret"       defStyleNum="dsOperator"/>
+		<itemData name="Separator"   defStyleNum="dsOperator"/>
+		<itemData name="Terminator"  defStyleNum="dsOperator"/>
+		<itemData name="Error"       defStyleNum="dsError"/>
+	</itemDatas>
+</highlighting>
+<general>
+	<comments>
+		<comment name="singleLine" start="#" position="afterwhitespace" />
+	</comments>
+</general>
+</language>
+<!-- kate: replace-tabs off; -->
