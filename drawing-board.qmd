@@ -1,0 +1,26 @@
+---
+title: "Proposal: Core Values"
+author: "James A. Overton"
+date: "2022-11-15"
+fig-height: 3
+code-fold: true
+---
+
+```{python}
+from display import display
+```
+  
+```{python}
+#| output: asis
+display("""
+subject: N1A1
+type: Adelie Penguin (Pygoscelis adeliae)
+has characteristic:
+  - type: mass
+    has value:
+      - type: normal mass
+        has quantity: 3750
+        has unit: g
+""")
+```
+
