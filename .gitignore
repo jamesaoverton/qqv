@@ -1,4 +1,4 @@
-/_site/
 /.quarto/
 /shell.nix
-
+/_site/
+/.venv/

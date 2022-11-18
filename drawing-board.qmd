@@ -6,13 +6,104 @@ fig-height: 3
 code-fold: true
 ---
 
+This document presents a series of examples
+of a proposed new way to model quantitative and qualitative values
+in the context of the Open Bio Ontologies (OBO).
+
+## Context
+
+First let's define some classes, object properties,
+and data properties to reuse (in YAML format).
+
 ```{python}
+#| code-fold: false
 from display import display
+
+context = """
+classes:
+  Adelie Penguin (Pygoscelis adeliae): NCBITaxon:9238
+  characteristic: PATO:0000001
+  entity: BFO:0000001
+  g: unit:g
+  male genotypic sex: PATO:0020001
+  mass: PATO:0000125
+  normal mass: PATO:0045030
+object properties:
+  has characteristic: RO:0000053
+  has value: :hasValue
+data properties:
+  has quantity: :hasQuantity
+  has unit: :hasUnit
+short:
+  Adelie Penguin (Pygoscelis adeliae): Adelie Penguin
+"""
 ```
+
+## Characteristics
+
+One of the simplest things we can say in OBO
+is that an entity has a characteristic,
+using the 'has characteristic' relation.
+
+```{python}
+#| output: asis
+display(context, """
+type: entity
+has characteristic:
+  - type: characteristic
+""")
+```
+
+## Penguin Sex
+
+Given an Adelie Penguin "N1A1",
+we can say that it is male
+by saying that it 'has characteristic'
+an (anonymous) 'male genotypic sex' characteristic.
+
+```{python}
+#| output: asis
+display(context, """
+subject: N1A1
+type: Adelie Penguin (Pygoscelis adeliae)
+has characteristic:
+  - type: male genotypic sex
+""")
+```
+
+## Penguin Mass
+
+We can also talk about N1A1's body mass
+using a 'mass' characteristic.
+
+```{python}
+#| output: asis
+display(context, """
+subject: N1A1
+type: Adelie Penguin (Pygoscelis adeliae)
+has characteristic:
+  - type: mass
+""")
+```
+
+We usually want to say more than just "N1A1 has mass" --
+we want to say that the mass is normal,
+or is 3750g.
+
+## Values
+
+## Scalar Values
+
+
+
+## Penguin Mass in Grams
+
+
+
   
 ```{python}
 #| output: asis
-display("""
+display(context, """
 subject: N1A1
 type: Adelie Penguin (Pygoscelis adeliae)
 has characteristic:
@@ -23,4 +114,8 @@ has characteristic:
         has unit: g
 """)
 ```
+
+
+
+
 

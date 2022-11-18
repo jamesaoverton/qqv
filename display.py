@@ -4,42 +4,12 @@ try:
 except ImportError:
     from yaml import Loader
 
-ids = {
-    "Adelie Penguin (Pygoscelis adeliae)": "NCBITaxon:9238",
-    "has characteristic": "RO:0000053",
-    "mass": "PATO:0000125",
-    "has value": ":hasValue",
-    "has quantity": ":hasQuantity",
-    "has unit": ":hasUnit",
-    "g": "unit:g",
-    "type": "a",
-}
-shorten = {
-    "Adelie Penguin (Pygoscelis adeliae)": "Adelie Penguin",
-}
 
-data_properties = [
-    "has quantity",
-    "has unit"
-]
-
-yaml_example = """
-subject: N1A1
-type: Adelie Penguin (Pygoscelis adeliae)
-has characteristic:
-  - type: mass
-    has value:
-      - type: mass
-        has quantity: 3750
-        has unit: g
-"""
-
-
-def id_label(input):
+def id_label(context, input):
     if input == "type":
         return ["a", None]
-    elif input in ids:
-        curie = ids[input]
+    elif input in context["ids"]:
+        curie = context["ids"][input]
         if curie.startswith(":"):
             return [curie, None]
         elif curie.startswith("unit:"):
@@ -49,14 +19,16 @@ def id_label(input):
         return [":" + input, None]
 
 
-def turtle(input, depth=0, last=True):
+def turtle(context, input, depth=0, last=True):
+    if not isinstance(input, dict):
+        raise Exception(f"Not a dict: {input}")
     lines = []
     indent = " " * depth * 2
     if "subject" in input:
         subject = input["subject"]
-        if subject in ids:
+        if subject in context["ids"]:
             label = subject
-            curie = ids[subject]
+            curie = context["ids"][subject]
             line = f"{curie} # '{label}'"
             lines.append(indent + line)
         else:
@@ -67,21 +39,21 @@ def turtle(input, depth=0, last=True):
         if key == "subject":
             continue
         if isinstance(value, list):
-            kid, label = id_label(key)
+            kid, label = id_label(context, key)
             line = f"  {kid} ["
             if label:
                 line += f" # '{label}'"
             lines.append(indent + line)
             for item in value:
-                lines += turtle(item, depth+1)
+                lines += turtle(context, item, depth+1)
             lines.append(indent + "  ] ;")
         else:
             labels = []
-            kid, label = id_label(key)
+            kid, label = id_label(context, key)
             if label:
                 labels.append(label)
             if isinstance(value, str):
-                vid, label = id_label(value)
+                vid, label = id_label(context, value)
                 if label:
                     labels.append(label)
             elif isinstance(value, int):
@@ -133,7 +105,7 @@ def flatten(input):
     return triples
 
 
-def dot(input):
+def dot(context, input):
     # classes = []
     # instances = []
     # edges = []
@@ -155,12 +127,12 @@ def dot(input):
         if p == "type":
             if o not in classes:
                 classes.append(o)
-        elif p in data_properties:
+        elif p in context["data properties"]:
             if o not in literals:
                 literals.append(o)
     for c in classes:
-        if c in shorten:
-            line = f'    "{c}" [label="{shorten[c]}"] ;'
+        if c in context["short"]:
+            line = f'    "{c}" [label="{context["short"][c]}"] ;'
         else:
             line = f'    "{c}" ;'
         lines.append(line)
@@ -183,8 +155,8 @@ def dot(input):
         """    node [shape="plaintext"] ;""",
     ]
     for l in literals:
-        if l in ids:
-            line = f'    "{l}" [label="{ids[l]}"] ;'
+        if l in context["ids"]:
+            line = f'    "{l}" [label="{context["ids"][l]}"] ;'
         else:
             label = l.replace('"', '\\"')
             line = f'    "{label}" ;'
@@ -195,7 +167,7 @@ def dot(input):
         o = o.replace('"', '\\"')
         if p == "type":
             line = f'  "{s}" -> "{o}" [style="dashed"];'
-        elif p in data_properties:
+        elif p in context["data properties"]:
             line = f'  "{o}" -> "{s}" [label="{p}", dir="back", style="dotted"];'
         else:
             line = f'  "{s}" -> "{o}" [label="{p}"] ;'
@@ -204,35 +176,73 @@ def dot(input):
     return lines
 
 
-def display(input):
-    data = yaml.load(input, Loader=Loader)
+def load_context(context_yaml):
+    context = yaml.load(context_yaml, Loader=Loader)
+    ids = {}
+    for key in ["classes", "object properties", "data properties"]:
+        ids.update(context[key])
+    context["ids"] = ids
+    return context
+
+
+def display(context_yaml, input_yaml):
+    context = load_context(context_yaml)
+    data = yaml.load(input_yaml, Loader=Loader)
     lines = [
         "::: {.panel-tabset}",
         "### Diagram",
         "```{dot}",
     ]
-    lines += dot(data)
+    lines += dot(context, data)
     lines += [
         "```",
         "",
         "### YAML",
         "```yaml",
-        input.strip(),
+        input_yaml.strip(),
         "```",
         "",
         "### Turtle",
         "```turtle",
     ]
-    lines += turtle(data)
+    lines += turtle(context, data)
     lines += [
         "```",
         ":::",
     ]
+    # print(context["ids"])
     print("\n".join(lines))
+
+
+example_context = """
+classes:
+  Adelie Penguin (Pygoscelis adeliae): "NCBITaxon:9238"
+  g: "unit:g"
+  mass: "PATO:0000125"
+object properties:
+  has characteristic: "RO:0000053"
+  has unit: ":hasUnit"
+  has value: ":hasValue"
+data properties:
+  has quantity: ":hasQuantity"
+short:
+  Adelie Penguin (Pygoscelis adeliae): Adelie Penguin
+"""
+
+example_input = """
+subject: N1A1
+type: Adelie Penguin (Pygoscelis adeliae)
+has characteristic:
+  - type: mass
+    has value:
+      - type: mass
+        has quantity: 3750
+        has unit: g
+"""
 
 
 if __name__ == "__main__":
-    example = yaml.load(yaml_example, Loader=Loader)
-    lines = dot(example)
-    print("\n".join(lines))
-    # display(yaml_example)
+    # example = yaml.load(example_input, Loader=Loader)
+    # lines = dot(example_context, example)
+    # print("\n".join(lines))
+    display(example_context, example_input)
