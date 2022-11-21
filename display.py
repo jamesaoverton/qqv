@@ -15,14 +15,23 @@ def id_label(context, input):
         elif curie.startswith("unit:"):
             return [curie, None]
         return [curie, input]
+    elif input.startswith("_:"):
+        return [input, None]
     else:
         return [":" + input, None]
 
 
 def turtle(context, input, depth=0, last=True):
+    lines = []
+    if isinstance(input, list):
+        for item in input:
+            lines += turtle(context, item, depth, last)
+            if item != input[-1]:
+                lines.append("")
+
+        return lines
     if not isinstance(input, dict):
         raise Exception(f"Not a dict: {input}")
-    lines = []
     indent = " " * depth * 2
     if "subject" in input:
         subject = input["subject"]
@@ -78,8 +87,16 @@ SUBJECTS = 0
 
 
 def flatten(input):
-    global SUBJECTS
     triples = []
+    if isinstance(input, list):
+        for item in input:
+            triples += flatten(item)
+        return triples
+
+    if not isinstance(input, dict):
+        raise Exception(f"Not a dict: {input}")
+
+    global SUBJECTS
     subject = None
     if "subject" in input:
         subject = input["subject"]
@@ -106,9 +123,6 @@ def flatten(input):
 
 
 def dot(context, input):
-    # classes = []
-    # instances = []
-    # edges = []
     triples = flatten(input)
     lines = [
         """digraph G {""",
@@ -169,6 +183,10 @@ def dot(context, input):
             line = f'  "{s}" -> "{o}" [style="dashed"];'
         elif p in context["data properties"]:
             line = f'  "{o}" -> "{s}" [label="{p}", dir="back", style="dotted"];'
+        elif p in context["reverse"]:
+            line = f'  "{o}" -> "{s}" [label="{p}", dir="back"] ;'
+        elif p in context["loose"]:
+            line = f'  "{s}" -> "{o}" [label="{p}", constraint="false"] ;'
         else:
             line = f'  "{s}" -> "{o}" [label="{p}"] ;'
         lines.append(line)
@@ -245,4 +263,23 @@ if __name__ == "__main__":
     # example = yaml.load(example_input, Loader=Loader)
     # lines = dot(example_context, example)
     # print("\n".join(lines))
-    display(example_context, example_input)
+    # display(example_context, example_input)
+    display(example_context, """
+    - subject: N1A1
+      type: Adelie Penguin (Pygoscelis adeliae)
+      has attribute: N1A1_mass_attribute
+    - subject: N1A1_mass_attribute
+      type: mass
+      has value: N1A1_mass_value
+    - subject: N1A1_mass_value
+      type: mass
+      has quantity: 3750
+      has unit: g
+    - subject: N1A1_data_item
+      type: data item
+      is about: N1A1
+      specifies value: N1A1_mass_value
+    - subject: N1A1_mass_assay
+      type: mass measurement assay
+      has specified output: N1A1_data_item
+    """)

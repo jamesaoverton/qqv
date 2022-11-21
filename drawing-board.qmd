@@ -1,7 +1,7 @@
 ---
 title: "Proposal: Core Values"
 author: "James A. Overton"
-date: "2022-11-15"
+date: "2022-11-18"
 fig-height: 3
 code-fold: true
 ---
@@ -10,112 +10,327 @@ This document presents a series of examples
 of a proposed new way to model quantitative and qualitative values
 in the context of the Open Bio Ontologies (OBO).
 
-## Context
+## Technical Stuff
 
-First let's define some classes, object properties,
-and data properties to reuse (in YAML format).
+This document is a [Quarto](https://quarto.org) notebook.
+First let's get some technical bits out of the way,
+such as specifying some classes, object properties,
+and data properties to reuse below (in YAML format).
 
 ```{python}
-#| code-fold: false
 from display import display
 
 context = """
 classes:
   Adelie Penguin (Pygoscelis adeliae): NCBITaxon:9238
+  attribute: :attribute
+  assay: OBI:0000070
   characteristic: PATO:0000001
+  data item: IAO:0000027
   entity: BFO:0000001
   g: unit:g
+  genotypic sex: PATO:0020000
   male genotypic sex: PATO:0020001
   mass: PATO:0000125
+  mass measurement assay: OBI:0000445
   normal mass: PATO:0045030
+  value: :value
 object properties:
   has characteristic: RO:0000053
   has value: :hasValue
+  is about: IAO:0000136
+  has specified output: OBI:0000299
+  specifies value: :specifiesValue
 data properties:
   has quantity: :hasQuantity
   has unit: :hasUnit
 short:
   Adelie Penguin (Pygoscelis adeliae): Adelie Penguin
+reverse:
+  - has specified output
+  - specifies value
+  - measures attribute
+loose:
+  - is about
 """
 ```
+
+You can view each example as a diagram,
+in Turtle syntax,
+or in a human-readable YAML syntax
+that was used to generate both the diagram and the Turtle.
 
 ## Characteristics
 
 One of the simplest things we can say in OBO
 is that an entity has a characteristic,
 using the 'has characteristic' relation.
+Here we have
+
+- two very general classes: 'entity' and 'characteristic'
+- an instance of the 'entity' class named 'e'
+- an anonymous instance of the 'characteristic' class
+- one relation between the instances: 'has characteristic'
 
 ```{python}
 #| output: asis
 display(context, """
+subject: e
 type: entity
 has characteristic:
   - type: characteristic
 """)
 ```
 
+## Attributes
+
+Some characteristics are fundamental to what an entity is.
+Every penguin has body mass.
+Every penguin has a genotypic sex.
+By knowing that something is a penguin,
+we automatically know that it has these characteristics.
+Let's call these characteristics 'attributes',
+and introduce a 'has attribute' relation
+to relate an entity to one of its attributes.
+
+```{python}
+#| output: asis
+display(context, """
+subject: e
+type: entity
+has attribute:
+  - type: attribute
+""")
+```
+
+## Values
+
+Other characteristics can be different
+at different times or under different conditions.
+This particular penguin might be male,
+and it might have a body mass of 3750g.
+We expect that its genotypic sex won't change,
+but we know that its body mass will change.
+Let's call these characteristics 'values'.
+
+Every value is a more specific form of an attribute.
+A penguin always has one body mass attribute,
+and that attribute has values
+at different times and under different conditions.
+
+We'll intoduce a 'has value' relation
+between an attribute and one of its values.
+
+```{python}
+#| output: asis
+display(context, """
+subject: e
+type: entity
+has attribute:
+  - type: attribute
+    has value:
+      - type: value
+""")
+```
+
 ## Penguin Sex
 
-Given an Adelie Penguin "N1A1",
-we can say that it is male
-by saying that it 'has characteristic'
-an (anonymous) 'male genotypic sex' characteristic.
+Say we're studying penguins on an island.
+We give names to the penguins we're studying,
+and we name one of the "N1A1".
+N1A1 is male (i.e. has a male genotype).
+We say that N1A1 'has attribute' a 'genotpic sex',
+and that attribute 'has value' a 'male genotypic sex'.
+Since we don't need to say anything more
+about these characteristics,
+we'll leave them anonymous.
 
 ```{python}
 #| output: asis
 display(context, """
 subject: N1A1
 type: Adelie Penguin (Pygoscelis adeliae)
-has characteristic:
-  - type: male genotypic sex
+has attribute:
+  - type: genotypic sex
+    has value:
+      - type: male genotypic sex
 """)
 ```
 
 ## Penguin Mass
 
 We can also talk about N1A1's body mass
-using a 'mass' characteristic.
+using a 'mass' attribute and value.
+We might just want to say that its mass is "normal".
 
 ```{python}
 #| output: asis
 display(context, """
 subject: N1A1
 type: Adelie Penguin (Pygoscelis adeliae)
-has characteristic:
+has attribute:
   - type: mass
+    has value:
+      - type: normal mass
 """)
 ```
 
-We usually want to say more than just "N1A1 has mass" --
-we want to say that the mass is normal,
-or is 3750g.
-
-## Values
+This is an example of a "categorical" value,
+because it specifies that the attribute falls into a broad category.
 
 ## Scalar Values
 
+In order to specify scalar values such as "3750g"
+let's introduce 'has quantity' and 'has unit' relations
+that let us get more specific about values.
 
+```{python}
+#| output: asis
+display(context, """
+subject: N1A1
+type: Adelie Penguin (Pygoscelis adeliae)
+has attribute:
+  - type: attribute
+    has value:
+      - type: value
+        has quantity: 3750
+        has unit: g
+""")
+```
 
 ## Penguin Mass in Grams
 
-
-
+We say that N1A1 has a body mass of 3750g like this:
   
 ```{python}
 #| output: asis
 display(context, """
 subject: N1A1
 type: Adelie Penguin (Pygoscelis adeliae)
-has characteristic:
+has attribute:
   - type: mass
     has value:
-      - type: normal mass
+      - type: mass
         has quantity: 3750
         has unit: g
 """)
 ```
 
+Note that the attribute and the value belong to the same class 'mass',
+but we use the 'has quality' and 'has unit' data properties
+to make the value more specific than the attribute.
 
+## Penguin Mass Data
 
+In our example we *measured* N1A1's body mass.
+In OBI we call that measurement process a 'mass measurement assay',
+which outputs an IAO 'data item',
+which 'is about' the material entity that was measured.
+  
+```{python}
+#| output: asis
+display(context, """
+- subject: N1A1
+  type: Adelie Penguin (Pygoscelis adeliae)
+  has attribute: _:N1A1_mass_attribute
+- subject: _:N1A1_mass_attribute
+  type: mass
+  has value: _:N1A1_mass_value
+- subject: _:N1A1_mass_value
+  type: mass
+- subject: _:N1A1_data_item
+  type: data item
+  is about: N1A1
+- subject: _:N1A1_mass_assay
+  type: mass measurement assay
+  has specified output: _:N1A1_data_item
+""")
+```
 
+Unfortunately, the 'is about' relation is not telling us much.
+There's no connection between the value
+and the assay that measured it.
 
+We should have a few more relations:
+
+1. specifies value: from the data item to the value that was measured
+2. specifies value: from the assay to the measured attribute that was measured
+3. measured by: from the value to the assay that measured it
+
+```{python}
+#| output: asis
+display(context, """
+- subject: N1A1
+  type: Adelie Penguin (Pygoscelis adeliae)
+  has attribute: _:N1A1_mass_attribute
+- subject: _:N1A1_mass_attribute
+  type: mass
+  has value: _:N1A1_mass_value
+- subject: _:N1A1_mass_value
+  type: mass
+  measured by: _:N1A1_mass_assay
+- subject: _:N1A1_data_item
+  type: data item
+  specifies value: _:N1A1_mass_value
+- subject: _:N1A1_mass_assay
+  type: mass measurement assay
+  has specified output: _:N1A1_data_item
+  measures attribute: _:N1A1_mass_attribute
+""")
+```
+
+Now the 'data item' isn't telling us much.
+By omitting it, we get a much clearer picture,
+with all the information that we're likely to need.
+
+```{python}
+#| output: asis
+display(context, """
+- subject: N1A1
+  type: Adelie Penguin (Pygoscelis adeliae)
+  has attribute: _:N1A1_mass_attribute
+- subject: _:N1A1_mass_attribute
+  type: mass
+  has value: _:N1A1_mass_value
+- subject: _:N1A1_mass_value
+  type: mass
+  measured by: _:N1A1_mass_assay
+- subject: _:N1A1_mass_assay
+  type: mass measurement assay
+  measures attribute: _:N1A1_mass_attribute
+""")
+```
+
+We could also infer 'measures attribute'
+as the inverse of the two functional relations
+'has value' + 'measured by'.
+
+```{python}
+#| output: asis
+display(context, """
+subject: N1A1
+type: Adelie Penguin (Pygoscelis adeliae)
+has attribute:
+  - type: mass
+    has value:
+      - type: mass
+        measured by:
+          - type: mass measurement assay
+""")
+```
+
+So the general case would be:
+
+```{python}
+#| output: asis
+display(context, """
+subject: e
+type: entity
+has attribute:
+  - type: attribute
+    has value:
+      - type: value
+        measured by:
+          - type: assay
+""")
+```
