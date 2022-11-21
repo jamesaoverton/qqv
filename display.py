@@ -47,7 +47,14 @@ def turtle(context, input, depth=0, last=True):
         vid = None
         if key == "subject":
             continue
-        if isinstance(value, list):
+        if isinstance(value, list) and isinstance(value[0], str):
+            kid, label = id_label(context, key)
+            line = f"  {kid} "
+            line += " , ".join(value)
+            if label:
+                line += f" # '{label}'"
+            lines.append(indent + line)
+        elif isinstance(value, list):
             kid, label = id_label(context, key)
             line = f"  {kid} ["
             if label:
@@ -55,6 +62,8 @@ def turtle(context, input, depth=0, last=True):
             lines.append(indent + line)
             for item in value:
                 lines += turtle(context, item, depth+1)
+                if item != value[-1]:
+                    lines.append(indent + "  ] , [")
             lines.append(indent + "  ] ;")
         else:
             labels = []
@@ -115,10 +124,15 @@ def flatten(input):
             object = f'"{value}"^^xsd:float'
             triples.append([subject, key, object])
         elif isinstance(value, list):
-            object = f"_{SUBJECTS}"
-            triples.append([subject, key, object])
             for item in value:
-                triples += flatten(item)
+                if isinstance(item, str):
+                    triples.append([subject, key, item])
+                elif isinstance(item, dict):
+                    object = f"_{SUBJECTS}"
+                    triples.append([subject, key, object])
+                    triples += flatten(item)
+                else:
+                    raise Exception(f"Not a str or dict: {item}")
     return triples
 
 
@@ -234,17 +248,40 @@ def display(context_yaml, input_yaml):
 
 example_context = """
 classes:
-  Adelie Penguin (Pygoscelis adeliae): "NCBITaxon:9238"
-  g: "unit:g"
-  mass: "PATO:0000125"
+  Adelie Penguin (Pygoscelis adeliae): NCBITaxon:9238
+  attribute: :attribute
+  assay: OBI:0000070
+  averaging data transformation: OBI:0200170
+  characteristic: PATO:0000001
+  data item: IAO:0000027
+  entity: BFO:0000001
+  g: unit:g
+  genotypic sex: PATO:0020000
+  male genotypic sex: PATO:0020001
+  mass: PATO:0000125
+  mass measurement assay: OBI:0000445
+  normal mass: PATO:0045030
+  value: :value
 object properties:
-  has characteristic: "RO:0000053"
-  has unit: ":hasUnit"
-  has value: ":hasValue"
+  has characteristic: RO:0000053
+  has specified output: OBI:0000299
+  has value: :hasValue
+  is about: IAO:0000136
+  measures attribute: :measuresAttribute
+  measures entity: :measuresEntity
+  specifies value: :specifiesValue
 data properties:
-  has quantity: ":hasQuantity"
+  has quantity: :hasQuantity
+  has unit: :hasUnit
 short:
   Adelie Penguin (Pygoscelis adeliae): Adelie Penguin
+reverse:
+  - has specified output
+  - measures attribute
+  - measures entity
+  - specifies value
+loose:
+  - is about
 """
 
 example_input = """
@@ -267,19 +304,18 @@ if __name__ == "__main__":
     display(example_context, """
     - subject: N1A1
       type: Adelie Penguin (Pygoscelis adeliae)
-      has attribute: N1A1_mass_attribute
-    - subject: N1A1_mass_attribute
+      has attribute: _:N1A1_mass_attribute
+    - subject: _:N1A1_mass_attribute
       type: mass
-      has value: N1A1_mass_value
-    - subject: N1A1_mass_value
+      has value:
+        - _:N1A1_mass_value_g
+        - _:N1A1_mass_value_kg
+    - subject: _:N1A1_mass_value_g
       type: mass
-      has quantity: 3750
+      has quantity: 1000
       has unit: g
-    - subject: N1A1_data_item
-      type: data item
-      is about: N1A1
-      specifies value: N1A1_mass_value
-    - subject: N1A1_mass_assay
-      type: mass measurement assay
-      has specified output: N1A1_data_item
+    - subject: _:N1A1_mass_value_kg
+      type: mass
+      has quantity: 1
+      has unit: kg
     """)

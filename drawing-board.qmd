@@ -25,6 +25,7 @@ classes:
   Adelie Penguin (Pygoscelis adeliae): NCBITaxon:9238
   attribute: :attribute
   assay: OBI:0000070
+  averaging data transformation: OBI:0200170
   characteristic: PATO:0000001
   data item: IAO:0000027
   entity: BFO:0000001
@@ -36,6 +37,8 @@ classes:
   normal mass: PATO:0045030
   value: :value
 object properties:
+  conversion of: :conversionOf
+  has attribute: :hasAttribute
   has characteristic: RO:0000053
   has specified output: OBI:0000299
   has value: :hasValue
@@ -49,6 +52,7 @@ data properties:
 short:
   Adelie Penguin (Pygoscelis adeliae): Adelie Penguin
 reverse:
+  - conversion of
   - has specified output
   - measures attribute
   - measures entity
@@ -102,7 +106,7 @@ display(context, """
 subject: e
 type: entity
 has attribute:
-  - type: attribute
+  - type: characteristic
 """)
 ```
 
@@ -130,9 +134,9 @@ display(context, """
 subject: e
 type: entity
 has attribute:
-  - type: attribute
+  - type: characteristic
     has value:
-      - type: value
+      - type: characteristic
 """)
 ```
 
@@ -193,9 +197,9 @@ display(context, """
 subject: N1A1
 type: Adelie Penguin (Pygoscelis adeliae)
 has attribute:
-  - type: attribute
+  - type: characteristic
     has value:
-      - type: value
+      - type: characteristic
         has quantity: 3750
         has unit: g
 """)
@@ -222,6 +226,37 @@ has attribute:
 Note that the attribute and the value belong to the same class 'mass',
 but we use the 'has quality' and 'has unit' data properties
 to make the value more specific than the attribute.
+
+## Values Without Attributes
+
+In all our examples,
+the value is still a characteristic the entity.
+The benefit of distinguishing attributes from values is
+in linking values to each other (discussed below),
+in grouping values together when they share an attribute,
+in connecting a measurement process to the attribute it measures
+(and thus to the possible values),
+in validating data,
+etc.
+
+In all our examples here we will consistently distinguish attributes and values.
+If you don't want to make this distinction,
+you can just use 'has characteristic'
+to connect an entity to a specific value.
+
+```{python}
+#| output: asis
+display(context, """
+subject: e
+type: entity
+has characteristic:
+  - type: mass
+    has quantity: 3750
+    has unit: g
+  - type: normal mass
+  - type: male genotypic sex
+""")
+```
 
 ## Penguin Mass Data
 
@@ -319,9 +354,9 @@ display(context, """
 subject: e
 type: entity
 has attribute:
-  - type: attribute
+  - type: characteristic
     has value:
-      - type: value
+      - type: characteristic
         measured by:
           - type: assay
 """)
@@ -407,4 +442,90 @@ display(context, """
   measures entity: N1A1
 """)
 ```
+
+## Penguin Mass in Kilograms
+
+We often want to convert a scalar value
+from one unit system to another.
+In our RDF representation,
+a value cannot have more than one
+'has quantity' or 'has unit' property,
+because we wouldn't keep track
+of which quantity goes with which unit.
+Instead we can use multiple values,
+and keep track of the connection between them
+using a new 'conversion of' relation.
+
+```{python}
+#| output: asis
+display(context, """
+- subject: N1A1
+  type: Adelie Penguin (Pygoscelis adeliae)
+  has attribute:
+    - type: mass
+      has value:
+        - _:N1A1_mass_value_g
+        - _:N1A1_mass_value_kg
+- subject: _:N1A1_mass_value_g
+  type: mass
+  has quantity: 3750
+  has unit: g
+- subject: _:N1A1_mass_value_kg
+  type: mass
+  has quantity: 3.750
+  has unit: kg
+  conversion of: _:N1A1_mass_value_g
+""")
+```
+
+From an ontological perspective,
+there might only be one value here,
+and we just refer to it by different names
+practical reasons.
+
+## Penguin Mass Ascertained
+
+When talking about a value,
+we might be interested in what *caused* that value,
+or we might be interested in *how we know* what that value is.
+The measurement and conversion processes discussed above
+tell us how we know a value,
+but there are many other ways.
+
+For example, we might want to talk about the average weight of N1A1,
+accounting for multiple mass measurements.
+Our data and diagrams should have the same shape as in the measurement case.
+
+```{python}
+#| output: asis
+display(context, """
+subject: N1A1
+type: Adelie Penguin (Pygoscelis adeliae)
+has attribute:
+  - type: mass
+    has value:
+      - type: mass
+        ascertained by:
+          - type: averaging data transformation
+""")
+```
+
+The 'ascertained by' relation **is not causal**.
+Calculating the average did not *cause* the mass value.
+Calculating the average is *how we know* the mass value.
+'measured by' and 'conversion of' are subproperties of 'ascertained by'.
+They are important enough that they deserve special treatment.
+The general 'ascertained by' relation could be used when we:
+
+- calculate a value
+- estimate a value
+- curate a value from the literature
+
+In each case we can point to a planned process that ascerained the value.
+
+NOTE: In previous drafts I used the word 'determine',
+but changed to 'ascertain'
+to avoid any connotations of causation or choice,
+and to avoid other confusion with "determinate" and "determinable" terminology.
+
 
