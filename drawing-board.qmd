@@ -37,9 +37,11 @@ classes:
   value: :value
 object properties:
   has characteristic: RO:0000053
+  has specified output: OBI:0000299
   has value: :hasValue
   is about: IAO:0000136
-  has specified output: OBI:0000299
+  measures attribute: :measuresAttribute
+  measures entity: :measuresEntity
   specifies value: :specifiesValue
 data properties:
   has quantity: :hasQuantity
@@ -48,8 +50,9 @@ short:
   Adelie Penguin (Pygoscelis adeliae): Adelie Penguin
 reverse:
   - has specified output
-  - specifies value
   - measures attribute
+  - measures entity
+  - specifies value
 loose:
   - is about
 """
@@ -224,8 +227,10 @@ to make the value more specific than the attribute.
 
 In our example we *measured* N1A1's body mass.
 In OBI we call that measurement process a 'mass measurement assay',
-which outputs an IAO 'data item',
-which 'is about' the material entity that was measured.
+which outputs an IAO 'data item'.
+A 'data item' is an 'information content entity' (ICE),
+and ICEs are *about* things.
+So we can say that there is a data item about the value.
   
 ```{python}
 #| output: asis
@@ -240,22 +245,34 @@ display(context, """
   type: mass
 - subject: _:N1A1_data_item
   type: data item
-  is about: N1A1
+  is about: _:N1A1_mass_value
+""")
+```
+
+An assay 'has specified output' some 'data item':
+
+```{python}
+#| output: asis
+display(context, """
+- subject: N1A1
+  type: Adelie Penguin (Pygoscelis adeliae)
+  has attribute: _:N1A1_mass_attribute
+- subject: _:N1A1_mass_attribute
+  type: mass
+  has value: _:N1A1_mass_value
+- subject: _:N1A1_mass_value
+  type: mass
+- subject: _:N1A1_data_item
+  type: data item
+  is about: _:N1A1_mass_value
 - subject: _:N1A1_mass_assay
   type: mass measurement assay
   has specified output: _:N1A1_data_item
 """)
 ```
 
-Unfortunately, the 'is about' relation is not telling us much.
-There's no connection between the value
-and the assay that measured it.
-
-We should have a few more relations:
-
-1. specifies value: from the data item to the value that was measured
-2. specifies value: from the assay to the measured attribute that was measured
-3. measured by: from the value to the assay that measured it
+Let's introduce a 'measured by' relation
+that connects the value to the assay that measured it.
 
 ```{python}
 #| output: asis
@@ -271,39 +288,14 @@ display(context, """
   measured by: _:N1A1_mass_assay
 - subject: _:N1A1_data_item
   type: data item
-  specifies value: _:N1A1_mass_value
+  is about: _:N1A1_mass_value
 - subject: _:N1A1_mass_assay
   type: mass measurement assay
   has specified output: _:N1A1_data_item
-  measures attribute: _:N1A1_mass_attribute
 """)
 ```
 
-Now the 'data item' isn't telling us much.
-By omitting it, we get a much clearer picture,
-with all the information that we're likely to need.
-
-```{python}
-#| output: asis
-display(context, """
-- subject: N1A1
-  type: Adelie Penguin (Pygoscelis adeliae)
-  has attribute: _:N1A1_mass_attribute
-- subject: _:N1A1_mass_attribute
-  type: mass
-  has value: _:N1A1_mass_value
-- subject: _:N1A1_mass_value
-  type: mass
-  measured by: _:N1A1_mass_assay
-- subject: _:N1A1_mass_assay
-  type: mass measurement assay
-  measures attribute: _:N1A1_mass_attribute
-""")
-```
-
-We could also infer 'measures attribute'
-as the inverse of the two functional relations
-'has value' + 'measured by'.
+If we don't want to mention the data item, we have
 
 ```{python}
 #| output: asis
@@ -334,3 +326,85 @@ has attribute:
           - type: assay
 """)
 ```
+
+## Changes to Assay Modelling
+
+Currently, OBI does not work like this.
+An OBI assay has a material entity as its "evaluant",
+and the output data item 'is about' the evaluant.
+So the diagram looks like this:
+
+```{python}
+#| output: asis
+display(context, """
+- subject: N1A1
+  type: Adelie Penguin (Pygoscelis adeliae)
+  has attribute: _:N1A1_mass_attribute
+- subject: _:N1A1_mass_attribute
+  type: mass
+  has value: _:N1A1_mass_value
+- subject: _:N1A1_mass_value
+  type: mass
+- subject: _:N1A1_data_item
+  type: data item
+  is about: N1A1
+- subject: _:N1A1_mass_assay
+  type: mass measurement assay
+  has specified output: _:N1A1_data_item
+""")
+```
+
+Nothing connects the data item to the relevant value.
+An ICE can have multiple 'is about' relations,
+but it may be better to introduce a 'specifies value' relation.
+
+OBI assays have material entities as inputs
+but in many cases the point of an assay is to measure a process.
+We never measure *everything* about a target entity,
+but we can often specify which attribute an assay is measuring.
+The OBI assay template has a 'target entity' column
+which contains a mixture of material entities, processes, and characteristics.
+OBI assay modelling could be improved by introducing
+'measures entity' and 'measures attribute' relations.
+The range for 'measures attribute' would simply be any attribute.
+The range for 'measures entity' would be
+'material entity' or 'process' or (arguably) 'spatial region' --
+the same as the domain for 'has attribute'.
+
+assay | input | measures entity | measures attribute
+---|---|---|---
+mass measurement assay | material entity | material entity | mass
+binding assay | material entity | binding | binding strength/time ?
+basophil assay | blood | basophil | count ?
+cell-killing | cell population | cell | cell killing
+
+We would then say that the assay outputs a data item,
+and that data item 'specifies value' some value,
+which is a value of the measured attribute,
+which is an attribute of the measured entity.
+
+Including all those links at once, we get:
+
+```{python}
+#| output: asis
+display(context, """
+- subject: N1A1
+  type: Adelie Penguin (Pygoscelis adeliae)
+  has attribute: _:N1A1_mass_attribute
+- subject: _:N1A1_mass_attribute
+  type: mass
+  has value: _:N1A1_mass_value
+- subject: _:N1A1_mass_value
+  type: mass
+  measured by: _:N1A1_mass_assay
+- subject: _:N1A1_data_item
+  type: data item
+  specifies value: _:N1A1_mass_value
+- subject: _:N1A1_mass_assay
+  type: mass measurement assay
+  has specified output: _:N1A1_data_item
+  measures attribute: _:N1A1_mass_attribute
+  measures entity: N1A1
+""")
+```
+
