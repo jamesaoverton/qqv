@@ -18,8 +18,8 @@ website:
 format:
   html:
     theme: cosmo
-    css: styles.css
+    css: src/styles.css
     toc: true
 
 syntax-definitions:
-  - turtle.xml
+  - src/turtle.xml
