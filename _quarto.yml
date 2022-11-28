@@ -2,6 +2,9 @@ project:
   type: website
   resources:
     - linkml
+  render:
+    - "*.qmd"
+    - "!junk/"
 
 website:
   title: "QQV"
@@ -9,7 +12,8 @@ website:
     left:
       - href: index.qmd
         text: Home
-      - about.qmd
+      - href: primer.qmd
+        text: Primer
 
 format:
   html:

@@ -2,3 +2,6 @@
 /shell.nix
 /_site/
 /.venv/
+/junk/
+/data/
+__pycache__/

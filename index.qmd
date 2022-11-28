@@ -2,8 +2,7 @@
 title: "QQV"
 ---
 
-Quantitative and qualitative value modelling for OBO.
+Proposal for quantitative and qualitative value modelling in OBO.
 
-- [slides](slides.html)
-- [linkml](linkml/)
+- [Primer](primer.html)
 

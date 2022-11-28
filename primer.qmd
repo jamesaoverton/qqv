@@ -1,5 +1,5 @@
 ---
-title: "Proposal: Core Values"
+title: "Primer on Qualitative and Quantitative Values"
 author: "James A. Overton"
 date: "2022-11-18"
 fig-height: 3
@@ -18,7 +18,7 @@ such as specifying some classes, object properties,
 and data properties to reuse below (in YAML format).
 
 ```{python}
-from display import display
+from src.display import display
 
 context = """
 classes:
@@ -522,10 +522,17 @@ The general 'ascertained by' relation could be used when we:
 - curate a value from the literature
 
 In each case we can point to a planned process that ascerained the value.
+We can say more about the inputs, ouputs, participants, timing, etc.
+of those planned processes.
+
+For the practical reasons discussed above for unit conversion,
+it is best for **one** value to have no more than **one** ascertaining process,
+including measurement and conversion processes.
+Even if five processes come up with the same scalar "3750g",
+for practical purposes we should use five different values.
 
 NOTE: In previous drafts I used the word 'determine',
 but changed to 'ascertain'
 to avoid any connotations of causation or choice,
 and to avoid other confusion with "determinate" and "determinable" terminology.
-
 
